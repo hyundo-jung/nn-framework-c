@@ -58,6 +58,57 @@ float td[][3] = {
     {10, 11, 12},
 };
 
+void finite_diff(Xor m, Xor g, float eps, Mat ti, Mat to)
+{
+    float saved;
+    float c = cost(m, ti, to);
+
+    // w1 b1
+    for (size_t i = 0; i < m.w1.rows; i++)
+    {
+        for (size_t j = 0; j < m.w1.cols; j++)
+        {
+            saved = MAT_AT(m.w1, i, j);
+            MAT_AT(m.w1, i, j) += eps;
+            MAT_AT(g.w1, i, j) = (cost(m, ti, to) - c)/ eps;
+            MAT_AT(m.w1, i, j) = saved;
+        }
+    }
+
+    for (size_t i = 0; i < m.b1.rows; i++)
+    {
+        for (size_t j = 0; j < m.b1.cols; j++)
+        {
+            saved = MAT_AT(m.b1, i, j);
+            MAT_AT(m.b1, i, j) += eps;
+            MAT_AT(g.b1, i, j) = (cost(m, ti, to) - c)/ eps;
+            MAT_AT(m.b1, i, j) = saved;
+        }
+    }
+
+    // w2 b2
+    for (size_t i = 0; i < m.w2.rows; i++)
+    {
+        for (size_t j = 0; j < m.w2.cols; j++)
+        {
+            saved = MAT_AT(m.w1, i, j);
+            MAT_AT(m.w2, i, j) += eps;
+            MAT_AT(g.w2, i, j) = (cost(m, ti, to) - c)/ eps;
+            MAT_AT(m.w2, i, j) = saved;
+        }
+    }
+
+    for (size_t i = 0; i < m.b2.rows; i++)
+    {
+        for (size_t j = 0; j < m.b2.cols; j++)
+        {
+            saved = MAT_AT(m.b2, i, j);
+            MAT_AT(m.b2, i, j) += eps;
+            MAT_AT(g.b2, i, j) = (cost(m, ti, to) - c)/ eps;
+            MAT_AT(m.b2, i, j) = saved;
+        }
+    }
+}
 
 int main(void)
 {
@@ -78,9 +129,6 @@ int main(void)
         .stride = stride,
         .es = td[0] + 2,
     };
-
-    MAT_PRINT(ti);
-    MAT_PRINT(to);
 
     Xor m;
     m.a0 = mat_alloc(1, 2);
@@ -104,6 +152,7 @@ int main(void)
 
     printf("cost: %f \n", cost(m, ti, to));
 
+    #if 0
     for (size_t i = 0; i < 2; i++)
     {
         for (size_t j = 0; j < 2; j++)
@@ -116,6 +165,7 @@ int main(void)
             printf("%zu ^ %zu = %f\n", i, j, y);
         }
     }
+    #endif
   
     return 0;
 }
