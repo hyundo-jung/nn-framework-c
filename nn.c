@@ -62,7 +62,7 @@ float cost(Xor m, Mat ti, Mat to)
 
         for (size_t j = 0; j < q; j++)
         {
-            float d = MAT_AT(m.a2, i, j) - MAT_AT(y, i, j);
+            float d = MAT_AT(m.a2, 0, j) - MAT_AT(y, 0, j);
             c += d*d;
         }
     }
@@ -71,10 +71,10 @@ float cost(Xor m, Mat ti, Mat to)
 }
 
 float td[][3] = {
-    {1, 2, 3},
-    {4, 5, 6},
-    {7, 8, 9},
-    {10, 11, 12},
+    {0, 0, 0},
+    {0, 1, 1},
+    {1, 0, 1},
+    {1, 1, 0},
 };
 
 void finite_diff(Xor m, Xor g, float eps, Mat ti, Mat to)
@@ -89,7 +89,7 @@ void finite_diff(Xor m, Xor g, float eps, Mat ti, Mat to)
         {
             saved = MAT_AT(m.w1, i, j);
             MAT_AT(m.w1, i, j) += eps;
-            MAT_AT(g.w1, i, j) = (cost(m, ti, to) - c)/ eps;
+            MAT_AT(g.w1, i, j) = (cost(m, ti, to) - c)/eps;
             MAT_AT(m.w1, i, j) = saved;
         }
     }
@@ -110,7 +110,7 @@ void finite_diff(Xor m, Xor g, float eps, Mat ti, Mat to)
     {
         for (size_t j = 0; j < m.w2.cols; j++)
         {
-            saved = MAT_AT(m.w1, i, j);
+            saved = MAT_AT(m.w2, i, j);
             MAT_AT(m.w2, i, j) += eps;
             MAT_AT(g.w2, i, j) = (cost(m, ti, to) - c)/ eps;
             MAT_AT(m.w2, i, j) = saved;
@@ -197,13 +197,16 @@ int main(void)
     float eps = 1e-1;
     float rate = 1e-1;
 
-    printf("cost: %f \n", cost(m, ti, to));
-    finite_diff(m, g, eps, ti, to);
-    xor_learn(m, g, rate);
+    for (size_t i = 0; i < 100*1000; i++)
+    {
+        finite_diff(m, g, eps, ti, to);
+        xor_learn(m, g, rate);
+    }
+
     printf("cost: %f \n", cost(m, ti, to));
 
-
-    #if 0
+    printf("------------------\n");
+    #if 1
     for (size_t i = 0; i < 2; i++)
     {
         for (size_t j = 0; j < 2; j++)
