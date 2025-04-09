@@ -55,6 +55,9 @@ void nn_print(NN nn, const char* name);
 #define NN_PRINT(nn) nn_print(nn, #nn);
 void nn_rand(NN nn, float low, float high);
 void nn_forward(NN nn);
+float nn_cost(NN nn, Mat in, Mat out);
+void nn_finite_diff(NN nn, NN g, float eps, Mat in, Mat out);
+void nn_learn(NN nn, NN g, float rate);
 
 #endif //NN_H_
 
@@ -251,5 +254,86 @@ void nn_forward(NN nn)
         mat_sig(nn.as[i + 1]);
     }
 }
+
+float nn_cost(NN nn, Mat in, Mat out)
+{
+    NN_ASSERT(in.rows == out.rows);
+    NN_ASSERT(out.cols == NN_OUTPUT(nn).cols);
+    size_t n = in.rows;
+    size_t m = out.cols;
+
+    float c = 0.0f;
+    for (size_t i = 0; i < n; i++)
+    {
+        Mat x = mat_row(in, i);
+        Mat y = mat_row(out, i);
+
+        mat_copy(NN_INPUT(nn), x);
+        nn_forward(nn);
+
+        for (size_t j = 0; j < m; j++)
+        {
+            float d = MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(y, 0, j);
+            c += d*d;
+        }
+    }
+    c /= n;
+    return c;
+}
+
+void nn_finite_diff(NN nn, NN g, float eps, Mat in, Mat out)
+{
+    float saved;
+    float c = nn_cost(nn, in, out);
+
+    for (size_t i = 0; i < nn.count; i++)
+    {
+        for (size_t j = 0; j < nn.ws[i].rows; j++)
+        {
+            for (size_t k = 0; k < nn.ws[i].cols; k++)
+            {
+                saved = MAT_AT(nn.ws[i], j, k);
+                MAT_AT(nn.ws[i], j, k) += eps;
+                MAT_AT(g.ws[i], j, k) = (nn_cost(nn, in, out) - c) / eps;
+                MAT_AT(nn.ws[i], j, k) = saved;
+            }
+        }
+
+        for (size_t j = 0; j < nn.bs[i].rows; j++)
+        {
+            for (size_t k = 0; k < nn.bs[i].cols; k++)
+            {
+                saved = MAT_AT(nn.bs[i], j, k);
+                MAT_AT(nn.bs[i], j, k) += eps;
+                MAT_AT(g.bs[i], j, k) = (nn_cost(nn, in, out) - c) / eps;
+                MAT_AT(nn.bs[i], j, k) = saved;
+            }
+        }
+    }
+}
+
+void nn_learn(NN nn, NN g, float rate)
+{
+    for (size_t i = 0; i < nn.count; i++)
+    {
+        for (size_t j = 0; j < nn.ws[i].rows; j++)
+        {
+            for (size_t k = 0; k < nn.ws[i].cols; k++)
+            {
+                MAT_AT(nn.ws[i], j, k) -= rate*MAT_AT(g.ws[i], j, k);
+            }
+        }
+
+        for (size_t j = 0; j < nn.bs[i].rows; j++)
+        {
+            for (size_t k = 0; k < nn.bs[i].cols; k++)
+            {
+                MAT_AT(nn.bs[i], j, k) -= rate*MAT_AT(g.bs[i], j, k);
+            }
+        }
+    }
+}
+
+
 
 #endif // NN_IMPLEMENTATION
