@@ -37,8 +37,8 @@ void mat_copy(Mat dst, Mat src);
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
 void mat_sig(Mat m);
-void mat_print(Mat m, char* name);
-#define MAT_PRINT(m) mat_print(m, #m)
+void mat_print(Mat m, const char* name, size_t padding);
+#define MAT_PRINT(m) mat_print(m, #m, 0)
 
 typedef struct {
     size_t count; // # of inner layers
@@ -47,7 +47,14 @@ typedef struct {
     Mat *as; // the amount of activation is count + 1
 } NN;
 
+#define NN_INPUT(nn) (nn).as[0]
+#define NN_OUTPUT(nn) (nn).as[(nn).count]
+
 NN nn_alloc(size_t *arch, size_t arch_count);
+void nn_print(NN nn, const char* name);
+#define NN_PRINT(nn) nn_print(nn, #nn);
+void nn_rand(NN nn, float low, float high);
+void nn_forward(NN nn);
 
 #endif //NN_H_
 
@@ -168,18 +175,19 @@ void mat_sig(Mat m)
     }
 }
 
-void mat_print(Mat m, char* name)
+void mat_print(Mat m, const char* name, size_t padding)
 {
-    printf("%s = [\n", name);
+    printf("%*s%s = [\n", (int)padding, "", name);
     for (size_t i = 0; i < m.rows; i++)
     {
+        printf("%*s    ", (int)padding, "");
         for (size_t j = 0; j < m.cols; j++)
         {
-            printf("    %f ", MAT_AT(m, i, j));
+            printf("%f ", MAT_AT(m, i, j));
         }
         printf("\n");
     }
-    printf("]\n");
+    printf("%*s]\n", (int)padding, "");
 }
 
 NN nn_alloc(size_t *arch, size_t arch_count)
@@ -200,7 +208,7 @@ NN nn_alloc(size_t *arch, size_t arch_count)
 
     nn.as[0] = mat_alloc(1, arch[0]);
 
-    for (size_t i = 1; i < nn.count; i++)
+    for (size_t i = 1; i < arch_count; i++)
     {
         nn.ws[i - 1] = mat_alloc(arch[i - 1], arch[i]);
         nn.bs[i - 1] = mat_alloc(1, arch[i]);
@@ -208,6 +216,40 @@ NN nn_alloc(size_t *arch, size_t arch_count)
     }
 
     return nn;
+}
+
+void nn_print(NN nn, const char* name)
+{
+    char buf[256];
+
+    printf("%s = [\n", name);
+    for (size_t i = 0; i < nn.count; i++)
+    {
+        snprintf(buf, sizeof(buf), "ws%zu", i);
+        mat_print(nn.ws[i], buf, 4);
+        snprintf(buf, sizeof(buf), "bs%zu", i);
+        mat_print(nn.bs[i], buf, 4);
+    }
+    printf("]\n");
+}
+
+void nn_rand(NN nn, float low, float high)
+{
+    for (size_t i = 0; i < nn.count; i++)
+    {
+        mat_rand(nn.ws[i], low, high);
+        mat_rand(nn.bs[i], low, high);
+    }
+}
+
+void nn_forward(NN nn)
+{
+    for (size_t i = 0; i < nn.count; i++)
+    {
+        mat_dot(nn.as[i + 1], nn.as[i], nn.ws[i]);
+        mat_sum(nn.as[i + 1], nn.bs[i]);
+        mat_sig(nn.as[i + 1]);
+    }
 }
 
 #endif // NN_IMPLEMENTATION

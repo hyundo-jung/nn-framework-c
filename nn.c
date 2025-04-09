@@ -186,6 +186,19 @@ int main(void)
         .es = td[0] + 2,
     };
 
+    size_t arch[] = {2, 2, 1};
+    NN nn = nn_alloc(arch, ARRAY_LEN(arch));
+    nn_rand(nn, 0, 1);
+
+    Mat row = mat_row(ti, 3);
+    MAT_PRINT(row);
+
+    mat_copy(NN_INPUT(nn), row);
+    nn_forward(nn);
+    MAT_PRINT(NN_OUTPUT(nn));
+
+    return 0;
+
     Xor m = xor_alloc();
     Xor g = xor_alloc();
 
