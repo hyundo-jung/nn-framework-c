@@ -2,34 +2,46 @@
 #include "nn.h"
 #include <time.h>
 
-float td[][3] = {
-    {0, 0, 0},
-    {0, 1, 1},
-    {1, 0, 1},
-    {1, 1, 0},
+float td_xor[] = {
+    0, 0, 0,
+    0, 1, 1,
+    1, 0, 1,
+    1, 1, 0,
 };
+
+float td_or[] = {
+    0, 0, 0,
+    0, 1, 1,
+    1, 0, 1,
+    1, 1, 1,
+};
+
+#define td td_xor
 
 int main(void)
 {
     srand(time(0));
 
+    // float *td = td_or;
+
     size_t stride = 3;
-    size_t n = sizeof(td) / sizeof(td[0]);
+    // size_t n = 4;
+    size_t n = sizeof(td) / sizeof(td[0])/stride;
     Mat ti = {
         .rows = n,
         .cols = 2,
         .stride = stride,
-        .es = td[0],
+        .es = td,
     };
 
     Mat to = {
         .rows = n,
         .cols = 1,
         .stride = stride,
-        .es = td[0] + 2,
+        .es = td + 2,
     };
 
-    size_t arch[] = {2, 2, 1};
+    size_t arch[] = {2, 4, 1};
     NN nn = nn_alloc(arch, ARRAY_LEN(arch));
     nn_rand(nn, 0, 1);
 
