@@ -37,7 +37,10 @@ void mat_copy(Mat dst, Mat src);
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
 void mat_sig(Mat m);
+void mat_appendCol(Mat dst, Mat src, Mat a);
+void mat_appendRow(Mat dst, Mat src, Mat a);
 void mat_print(Mat m, const char* name, size_t padding);
+
 #define MAT_PRINT(m) mat_print(m, #m, 0)
 
 typedef struct {
@@ -178,6 +181,45 @@ void mat_sig(Mat m)
     }
 }
 
+void mat_appendCol(Mat dst, Mat src, Mat a)
+{
+    NN_ASSERT(dst.rows == src.rows);
+    NN_ASSERT(dst.cols == src.cols + 1);
+
+    NN_ASSERT(a.rows == dst.rows);
+    NN_ASSERT(a.cols == 1);
+
+    for (size_t i = 0; i < dst.rows; i++)
+    {
+        for (size_t j = 0; j < dst.cols - 1; j++)
+        {
+            MAT_AT(dst, i, j) = MAT_AT(src, i, j);
+        }
+
+        MAT_AT(dst, i, dst.cols - 1) = MAT_AT(a, i, 0);
+    }
+}
+
+void mat_appendRow(Mat dst, Mat src, Mat a)
+{
+    NN_ASSERT(dst.cols == src.cols);
+    NN_ASSERT(dst.rows == src.rows + 1);
+
+    NN_ASSERT(a.cols == dst.cols);
+    NN_ASSERT(a.rows == 1);
+
+    for (size_t j = 0; j < dst.cols; j++)
+    {
+        for (size_t i = 0; i < dst.rows - 1; i++)
+        {
+            MAT_AT(dst, i, j) = MAT_AT(src, i, j);
+        }
+
+        MAT_AT(dst, dst.rows - 1, j) = MAT_AT(a, 0, j);
+    }
+
+}
+
 void mat_print(Mat m, const char* name, size_t padding)
 {
     printf("%*s%s = [\n", (int)padding, "", name);
@@ -249,8 +291,18 @@ void nn_forward(NN nn)
 {
     for (size_t i = 0; i < nn.count; i++)
     {
-        mat_dot(nn.as[i + 1], nn.as[i], nn.ws[i]);
-        mat_sum(nn.as[i + 1], nn.bs[i]);
+        Mat as_temp = mat_alloc(nn.as[i].rows, nn.as[i].cols + 1);
+        Mat ws_temp = mat_alloc(nn.ws[i].rows + 1, nn.ws[i].cols);
+        // concern: mallocating matrices internally that user has no control
+
+        Mat ones = mat_alloc(nn.as[i].rows, 1);
+        for (size_t i = 0; i < nn.as[i].rows; i++)
+            MAT_AT(ones, i, 0) = 1;
+
+        mat_appendCol(as_temp, nn.as[i], ones);
+        mat_appendRow(ws_temp, nn.ws[i], nn.bs[i]);
+
+        mat_dot(nn.as[i + 1], as_temp, ws_temp);
         mat_sig(nn.as[i + 1]);
     }
 }

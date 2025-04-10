@@ -41,7 +41,7 @@ int main(void)
         .es = td + 2,
     };
 
-    size_t arch[] = {2, 4, 1};
+    size_t arch[] = {2, 2, 1};
     NN nn = nn_alloc(arch, ARRAY_LEN(arch));
     nn_rand(nn, 0, 1);
 
